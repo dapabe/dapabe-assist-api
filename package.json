@@ -1,16 +1,22 @@
 {
-  "name": "@dapabe/assist-api",
+  "name": "@denzere/assist-api",
   "version": "0.0.1",
-  "type": "module",
   "description": "API for desktop & mobile apps",
-  "files": [
-    "build",
-    "src",
-    "migrations"
+  "keywords": [
+    "API",
+    "Internal"
   ],
-  "types": "./build/index.d.ts",
-  "module": "./build/index.js",
-  "main": "./build/index.cjs",
+  "homepage": "https://github.com/dapabe/dapabe-assist-api#readme",
+  "bugs": {
+    "url": "https://github.com/dapabe/dapabe-assist-api/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/dapabe/dapabe-assist-api.git"
+  },
+  "license": "ISC",
+  "author": "Daniel Patricio Becerra",
+  "type": "module",
   "exports": {
     ".": {
       "types": "./build/index.d.ts",
@@ -24,16 +30,13 @@
       "require": "./build/i18n/next-init.cjs"
     }
   },
-  "typesVersions": {
-    "*": {
-      "migrations": [
-        "./migrations/migrations.js"
-      ],
-      "i18n/next": [
-        "./build/i18n/next-init.d.ts"
-      ]
-    }
-  },
+  "main": "./build/index.cjs",
+  "types": "./build/index.d.ts",
+  "files": [
+    "build",
+    "src",
+    "migrations"
+  ],
   "scripts": {
     "clean": "git clean -xdf .turbo build node_modules",
     "dev": "tsup --watch --silent",
@@ -44,12 +47,6 @@
     "db:migrate": "drizzle-kit migrate --config=drizzle.config.ts",
     "db:push": "drizzle-kit push --config=drizzle.config.ts",
     "db:studio": "drizzle-kit studio"
-  },
-  "eslintConfig": {
-    "ignorePatterns": [
-      "node_modules",
-      "build"
-    ]
   },
   "dependencies": {
     "@paralleldrive/cuid2": "2.2.2",
@@ -74,5 +71,25 @@
     "react-i18next": "15.5.1",
     "zod": "*",
     "zustand": "*"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "module": "./build/index.js",
+  "typesVersions": {
+    "*": {
+      "migrations": [
+        "./migrations/migrations.js"
+      ],
+      "i18n/next": [
+        "./build/i18n/next-init.d.ts"
+      ]
+    }
+  },
+  "eslintConfig": {
+    "ignorePatterns": [
+      "node_modules",
+      "build"
+    ]
   }
 }
