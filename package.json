@@ -1,0 +1,78 @@
+{
+  "name": "@dapabe/assist-api",
+  "version": "0.0.1",
+  "type": "module",
+  "description": "API for desktop & mobile apps",
+  "files": [
+    "build",
+    "src",
+    "migrations"
+  ],
+  "types": "./build/index.d.ts",
+  "module": "./build/index.js",
+  "main": "./build/index.cjs",
+  "exports": {
+    ".": {
+      "types": "./build/index.d.ts",
+      "import": "./build/index.js",
+      "require": "./build/index.cjs"
+    },
+    "./migrations": "./migrations/migrations.js",
+    "./i18n/next": {
+      "types": "./build/i18n/next-init.d.ts",
+      "import": "./build/i18n/next-init.js",
+      "require": "./build/i18n/next-init.cjs"
+    }
+  },
+  "typesVersions": {
+    "*": {
+      "migrations": [
+        "./migrations/migrations.js"
+      ],
+      "i18n/next": [
+        "./build/i18n/next-init.d.ts"
+      ]
+    }
+  },
+  "scripts": {
+    "clean": "git clean -xdf .turbo build node_modules",
+    "dev": "tsup --watch --silent",
+    "lint": "eslint --ext js,ts",
+    "test": "jest",
+    "build": "tsup --clean",
+    "db:generate": "drizzle-kit generate --config=drizzle.config.ts",
+    "db:migrate": "drizzle-kit migrate --config=drizzle.config.ts",
+    "db:push": "drizzle-kit push --config=drizzle.config.ts",
+    "db:studio": "drizzle-kit studio"
+  },
+  "eslintConfig": {
+    "ignorePatterns": [
+      "node_modules",
+      "build"
+    ]
+  },
+  "dependencies": {
+    "@paralleldrive/cuid2": "2.2.2",
+    "drizzle-orm": "catalog:drizzle",
+    "eventemitter3": "5.0.1",
+    "i18next": "catalog:utils",
+    "react-i18next": "15.5.1",
+    "zod": "catalog:utils",
+    "zod-i18n-map": "catalog:utils"
+  },
+  "devDependencies": {
+    "@tsconfig/recommended": "^1.0.8",
+    "@types/node": "catalog:node",
+    "drizzle-kit": "0.31.0",
+    "react-native-udp": "4.1.7",
+    "tsup": "^8.3.5",
+    "typescript": "5.8.2"
+  },
+  "peerDependencies": {
+    "drizzle-orm": "*",
+    "i18next": "*",
+    "react-i18next": "15.5.1",
+    "zod": "*",
+    "zustand": "*"
+  }
+}
