@@ -50,27 +50,20 @@
   },
   "dependencies": {
     "@paralleldrive/cuid2": "2.2.2",
-    "drizzle-orm": "catalog:drizzle",
+    "drizzle-orm": "0.43.1",
     "eventemitter3": "5.0.1",
-    "i18next": "catalog:utils",
+    "i18next": "25.0.1",
     "react-i18next": "15.5.1",
-    "zod": "catalog:utils",
-    "zod-i18n-map": "catalog:utils"
+    "zod": "4.1.12",
+    "zod-i18n-map": "2.27.0"
   },
   "devDependencies": {
     "@tsconfig/recommended": "^1.0.8",
-    "@types/node": "catalog:node",
+    "@types/node": "^22.18.6",
     "drizzle-kit": "0.31.0",
     "react-native-udp": "4.1.7",
     "tsup": "^8.3.5",
     "typescript": "5.8.2"
-  },
-  "peerDependencies": {
-    "drizzle-orm": "*",
-    "i18next": "*",
-    "react-i18next": "15.5.1",
-    "zod": "*",
-    "zustand": "*"
   },
   "publishConfig": {
     "access": "public"
