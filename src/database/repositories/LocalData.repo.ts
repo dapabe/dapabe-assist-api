@@ -1,18 +1,18 @@
-import cuid2 from '@paralleldrive/cuid2';
-import { eq, getTableColumns } from 'drizzle-orm';
+import cuid2 from "@paralleldrive/cuid2";
+import { eq, getTableColumns } from "drizzle-orm";
 
-import { ExpectedError } from '../../errors/ExpectedError';
-import { ILocalDataDTO } from '../../schemas/LocalData.schema';
-import { IRegisterLocalSchema } from '../../schemas/RegisterLocal.schema';
-import { DatabaseAdapter, DatabaseRepository } from '../DatabaseRepository';
+import { ExpectedError } from "../../errors/ExpectedError";
+import { ILocalDataDTO } from "../../schemas/LocalData.schema";
+import { IRegisterLocalSchema } from "../../schemas/RegisterLocal.schema";
+import { DatabaseAdapter, DatabaseRepository } from "../DatabaseRepository";
 
 export class RepositoryLocalData extends DatabaseRepository<DatabaseAdapter> {
-  async get(): Promise<ILocalDataDTO['Read']> {
+  async getLocalData(): Promise<ILocalDataDTO["Read"]> {
     const result = await this.db.query.Table_LocalData.findFirst({
       with: { RelCurrentAppId: true },
     });
 
-    if (!result) throw new ExpectedError('db.missingLocalData');
+    if (!result) throw new ExpectedError("db.missingLocalData");
 
     const previousIds = await this.db
       .select()
@@ -26,9 +26,27 @@ export class RepositoryLocalData extends DatabaseRepository<DatabaseAdapter> {
     };
   }
 
+  async getCurrentName(): Promise<string> {
+    const result = await this.db.query.Table_LocalData.findFirst({
+      columns: { currentName: true },
+    });
+    if (!result) throw new ExpectedError("db.missingLocalData");
+
+    return result.currentName;
+  }
+
+  async getCurrentAppId(): Promise<string> {
+    const result = await this.db.query.Table_LocalData.findFirst({
+      columns: { currentAppId: true },
+    });
+    if (!result) throw new ExpectedError("db.missingLocalData");
+
+    return result.currentAppId;
+  }
+
   async create(data: IRegisterLocalSchema): Promise<void> {
     const exists = await this.entryExists();
-    if (exists) throw new ExpectedError('db.onlyOneLocalData');
+    if (exists) throw new ExpectedError("db.onlyOneLocalData");
 
     const appId = cuid2.createId();
 
@@ -40,17 +58,21 @@ export class RepositoryLocalData extends DatabaseRepository<DatabaseAdapter> {
     });
   }
 
-  async patch(data: ILocalDataDTO['Update']): Promise<void> {
+  async patch(data: ILocalDataDTO["Update"]): Promise<void> {
     const result = await this.db.select().from(this.schema.Table_LocalData);
-    if (result.length === 0) throw new ExpectedError('db.missingLocalData');
-    if (result.length > 1) throw new ExpectedError('db.onlyOneLocalData');
+    if (result.length === 0) throw new ExpectedError("db.missingLocalData");
+    if (result.length > 1) throw new ExpectedError("db.onlyOneLocalData");
 
     if (data.currentAppId && data.currentAppId !== result[0].currentAppId) {
       // Save old ID to history
-      await this.db.insert(this.schema.Table_PreviousAppIds).values({ id: result[0].currentAppId });
+      await this.db
+        .insert(this.schema.Table_PreviousAppIds)
+        .values({ id: result[0].currentAppId });
 
       // Save new ID to history
-      await this.db.insert(this.schema.Table_PreviousAppIds).values({ id: data.currentAppId });
+      await this.db
+        .insert(this.schema.Table_PreviousAppIds)
+        .values({ id: data.currentAppId });
     }
 
     await this.db
@@ -59,12 +81,14 @@ export class RepositoryLocalData extends DatabaseRepository<DatabaseAdapter> {
         ...(data.currentName && { currentName: data.currentName }),
         ...(data.currentAppId && { currentAppId: data.currentAppId }),
       })
-      .where(eq(this.schema.Table_LocalData.currentAppId, result[0].currentAppId));
+      .where(
+        eq(this.schema.Table_LocalData.currentAppId, result[0].currentAppId)
+      );
   }
 
   async entryExists(): Promise<boolean> {
     const result = await this.db.select().from(this.schema.Table_LocalData);
-    if (result.length > 1) throw new ExpectedError('db.onlyOneLocalData');
+    if (result.length > 1) throw new ExpectedError("db.onlyOneLocalData");
     return !!result.length;
   }
 

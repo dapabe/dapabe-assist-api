@@ -1,20 +1,20 @@
-import { createId } from '@paralleldrive/cuid2';
-import { Buffer } from 'buffer';
-import { ZodError } from 'zod';
+import { createId } from "@paralleldrive/cuid2";
+import { Buffer } from "buffer";
+import { ZodError } from "zod";
 
-import { SocketAdapter } from './abstract-adapter';
-import { UDP_CONSTANTS } from './udp-constants';
+import { SocketAdapter } from "./abstract-adapter";
+import { UDP_CONSTANTS } from "./udp-constants";
 import {
   ConnMethod,
   IRoomEvent,
   IRoomPacket,
   RoomEventLiteral,
   RoomPacketSchema,
-} from '../schemas/RoomEvent.schema';
-import { stringToJSONSchema } from '../schemas/utils.schema';
-import { IRoomState } from '../store/useRoomStore';
-import { RemoteUDPInfo } from '../types/room.context';
-import { ISocketClient } from '../types/socket-adapter';
+} from "../schemas/RoomEvent.schema";
+import { stringToJSONSchema } from "../schemas/utils.schema";
+import { IRoomState } from "../store/useRoomStore";
+import { RemoteUDPInfo } from "../types/room.context";
+import { ISocketClient } from "../types/socket-adapter";
 
 type ISocketClientOptions = {
   address: string;
@@ -52,7 +52,7 @@ export class UdpSocketClient implements ISocketClient {
       );
       this.config.store.updateConnectionMethod(ConnMethod.LANSocket, this);
       // UdpSocketClient.instance = this;
-      console.log('[UDP] Initialized');
+      console.log("[UDP] Initialized");
     } catch (error) {
       console.log(`[UDP] Error ${error}`);
       this.close();
@@ -65,7 +65,7 @@ export class UdpSocketClient implements ISocketClient {
       this.HEARTBEAT_INTERVAL = undefined!;
       this.config.adapter.close();
       this.config.store.updateConnectionMethod(ConnMethod.None, null);
-      console.log('[UDP] Closed');
+      console.log("[UDP] Closed");
     }
   }
 
@@ -80,8 +80,8 @@ export class UdpSocketClient implements ISocketClient {
   }
 
   async *sendDiscovery(): AsyncGenerator<{ counter: number; done: boolean }> {
-    console.log('[UDP] Sending discovery for 30s');
-    const duration = process.env.NODE_ENV === 'development' ? 10 : 30;
+    console.log("[UDP] Sending discovery for 30s");
+    const duration = process.env.NODE_ENV === "development" ? 10 : 30;
     for (let index = duration; index > 0; index--) {
       console.log(`[UDP] Sending discovery ${index}`);
       yield { counter: index, done: false };
@@ -93,7 +93,9 @@ export class UdpSocketClient implements ISocketClient {
   private parseMessage(data: unknown, rinfo: RemoteUDPInfo): void {
     try {
       if (!Buffer.isBuffer(data)) {
-        throw new ZodError([{ code: 'custom', message: 'Invalid Buffer', path: [] }]);
+        throw new ZodError([
+          { code: "custom", message: "Invalid Buffer", path: [] },
+        ]);
       }
       // Prevent self-broadcast from processing
       if (rinfo.address === this.config.adapter.currentAddress) return;
@@ -102,14 +104,20 @@ export class UdpSocketClient implements ISocketClient {
       const parsed = stringToJSONSchema.parse(msg);
       const packet = RoomPacketSchema.parse(parsed);
       console.log(
-        `[UDP] Event '${Object.keys(RoomEventLiteral)[packet.data.event]}' from ${rinfo.address}:${rinfo.port} ${new Date().toLocaleTimeString(undefined, { hour12: true })}`
+        `[UDP] Event '${
+          Object.keys(RoomEventLiteral)[packet.data.event]
+        }' from ${rinfo.address}:${rinfo.port} ${new Date().toLocaleTimeString(
+          undefined,
+          { hour12: true }
+        )}`
       );
       if (this.RepeatedIds.has(packet.id)) return;
       // console.log(`[UDP] Dupped msg from ${rinfo.address} - ${packet.id}`);
       this.RepeatedIds.add(packet.id);
       this.handleMessage(packet.data, rinfo);
     } catch (error) {
-      if (!Buffer.isBuffer(data)) return console.log(`[UDP] Data is not buffer: ${data}`);
+      if (!Buffer.isBuffer(data))
+        return console.log(`[UDP] Data is not buffer: ${data}`);
       if (error instanceof ZodError) {
         console.log(`[UDP] Buffer error: ${data.toString()}`);
         // this.sendTo(rinfo.port, rinfo.address, {
@@ -120,14 +128,14 @@ export class UdpSocketClient implements ISocketClient {
     }
   }
 
-  private handleMessage(data: IRoomEvent, rinfo: RemoteUDPInfo) {
+  private async handleMessage(data: IRoomEvent, rinfo: RemoteUDPInfo) {
     switch (data.event) {
       case RoomEventLiteral.LookingForDevices: {
         this.sendTo(rinfo.port, rinfo.address, {
           event: RoomEventLiteral.RespondToAdvertise,
-          appId: this.config.store.getAppId(),
-          callerName: this.config.store.getCurrentName(),
-          device: this.config.store.currentDevice ?? 'Unknown',
+          appId: await this.config.store.getAppId(),
+          callerName: await this.config.store.getCurrentName(),
+          device: this.config.store.getCurrentDevice() ?? "Unknown",
         });
         break;
       }
@@ -165,7 +173,8 @@ export class UdpSocketClient implements ISocketClient {
         const { event, ...payload } = data;
         this.config.store.updateIncomingResponder(payload);
         setTimeout(
-          () => this.config.store.updateIncomingResponder({ responderName: null }),
+          () =>
+            this.config.store.updateIncomingResponder({ responderName: null }),
           10_000
         );
         break;
@@ -173,7 +182,7 @@ export class UdpSocketClient implements ISocketClient {
       case RoomEventLiteral.AnnieAreYouOkay: {
         this.sendTo(rinfo.port, rinfo.address, {
           event: RoomEventLiteral.ImOkay,
-          appId: this.config.store.getAppId(),
+          appId: await this.config.store.getAppId(),
         });
         break;
       }
@@ -204,7 +213,9 @@ export class UdpSocketClient implements ISocketClient {
       // if it responds it's added to "scheduledToCheck"
       merged.forEach((r) => {
         console.log(
-          `[UDP] Send '${Object.keys(RoomEventLiteral)[RoomEventLiteral.AnnieAreYouOkay]}' to ${r.address}:${r.port}`
+          `[UDP] Send '${
+            Object.keys(RoomEventLiteral)[RoomEventLiteral.AnnieAreYouOkay]
+          }' to ${r.address}:${r.port}`
         );
         this.sendTo(r.port, r.address, {
           event: RoomEventLiteral.AnnieAreYouOkay,
@@ -213,37 +224,47 @@ export class UdpSocketClient implements ISocketClient {
 
       // Check for unresponsive devices
       const now = Date.now();
-      [...this.config.store.scheduledToCheck.entries()].forEach(([appId, v]) => {
-        // If the device hasnt responded in the last HEARTBEAT
-        if (now - v.lastPing > this.HEARTBEAT_EXPIRATION) {
-          // Disconnect it or remove it
-          this.config.store.onDeviceCleanUp(appId);
-          console.log(`[UDP] No signal from '${v.address}:${v.port}' removing`);
+      [...this.config.store.scheduledToCheck.entries()].forEach(
+        ([appId, v]) => {
+          // If the device hasnt responded in the last HEARTBEAT
+          if (now - v.lastPing > this.HEARTBEAT_EXPIRATION) {
+            // Disconnect it or remove it
+            this.config.store.onDeviceCleanUp(appId);
+            console.log(
+              `[UDP] No signal from '${v.address}:${v.port}' removing`
+            );
+          }
         }
-      });
+      );
     }, this.HEARTBEAT_EXPIRATION);
-    console.log('[UDP] Heartbeat attached');
+    console.log("[UDP] Heartbeat attached");
   };
 
-  requestHelp() {
-    if (this.config.store.incomingResponder || !this.config.store.currentListeners.length) {
-      console.log('[UDP] Incoming responder or no current listeners');
+  async requestHelp() {
+    if (
+      this.config.store.incomingResponder ||
+      !this.config.store.currentListeners.length
+    ) {
+      console.log("[UDP] Incoming responder or no current listeners");
       return;
     }
     this.HELP_INTERVAL = setInterval(() => {
       /**
        *  By the time someone responds the interval will clear itself
        */
-      if (!this.config.store.currentListeners.length || this.config.store.incomingResponder) {
+      if (
+        !this.config.store.currentListeners.length ||
+        this.config.store.incomingResponder
+      ) {
         clearInterval(this.HELP_INTERVAL);
         this.HELP_INTERVAL = undefined!;
         return;
       }
-      this.config.store.currentListeners.forEach((x) => {
+      this.config.store.currentListeners.forEach(async (x) => {
         this.sendTo(x.port, x.address, {
           event: RoomEventLiteral.RequestHelp,
-          callerName: this.config.store.getCurrentName(),
-          appId: this.config.store.getAppId(),
+          callerName: await this.config.store.getCurrentName(),
+          appId: await this.config.store.getAppId(),
         });
       });
     }, this.HELP_EXPIRATION);
