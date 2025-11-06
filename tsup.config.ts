@@ -13,5 +13,5 @@ export default defineConfig((opts) => ({
   // tsconfig: "./tsconfig.json",
   external: ["react-native-udp", "react"],
   ignoreWatch: ["node_modules/**/*", "build/**/*"],
-  watch: true,
+  watch: !!opts.watch,
 }));
