@@ -224,7 +224,7 @@ export class UdpSocketClient implements ISocketClient {
 
       // Check for unresponsive devices
       const now = Date.now();
-      [...this.config.store.scheduledToCheck.entries()].forEach(
+      [...this.config.store.__scheduledToCheck.entries()].forEach(
         ([appId, v]) => {
           // If the device hasnt responded in the last HEARTBEAT
           if (now - v.lastPing > this.HEARTBEAT_EXPIRATION) {
@@ -242,8 +242,8 @@ export class UdpSocketClient implements ISocketClient {
 
   async requestHelp() {
     if (
-      this.config.store.incomingResponder ||
-      !this.config.store.currentListeners.length
+      this.config.store.getIncomingResponder() ||
+      !this.config.store.getCurrentListeners().length
     ) {
       console.log("[UDP] Incoming responder or no current listeners");
       return;
@@ -253,14 +253,14 @@ export class UdpSocketClient implements ISocketClient {
        *  By the time someone responds the interval will clear itself
        */
       if (
-        !this.config.store.currentListeners.length ||
-        this.config.store.incomingResponder
+        !this.config.store.getCurrentListeners().length ||
+        this.config.store.getIncomingResponder()
       ) {
         clearInterval(this.HELP_INTERVAL);
         this.HELP_INTERVAL = undefined!;
         return;
       }
-      this.config.store.currentListeners.forEach(async (x) => {
+      this.config.store.getCurrentListeners().forEach(async (x) => {
         this.sendTo(x.port, x.address, {
           event: RoomEventLiteral.RequestHelp,
           callerName: await this.config.store.getCurrentName(),
