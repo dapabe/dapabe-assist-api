@@ -16,7 +16,7 @@ import {
   RemoteUDPInfo,
 } from "../types/room.context";
 
-type InMemoryStateKey = "__status" | "currentDevice";
+type InMemoryStateKey = "__status" | "__currentDevice";
 
 type InMemoryStateMap = {
   /**
@@ -24,7 +24,7 @@ type InMemoryStateMap = {
    *  Controls socket service availability
    */
   __status: IRoomServiceStatus;
-  currentDevice: string | null;
+  __currentDevice: string | null;
 };
 
 export type IAssistanceRoomClientSlice = InMemoryStateMap & {
@@ -44,7 +44,7 @@ export type IAssistanceRoomClientSlice = InMemoryStateMap & {
    * Check if they are ok, if not delete them or set to disconnect
    * the value is the epochTimestamp
    */
-  scheduledToCheck: Map<
+  __scheduledToCheck: Map<
     UUID,
     {
       lastPing: number;
@@ -53,6 +53,10 @@ export type IAssistanceRoomClientSlice = InMemoryStateMap & {
     }
   >;
   __dbRepos: DatabaseService["Repo"] | null;
+  /**
+   *  Stores references to db repositories and \
+   *  populates in memory `__storedListeners` with db entries
+   */
   __syncDatabase: (repos: DatabaseService["Repo"]) => Promise<void>;
   getRepos: () => DatabaseService["Repo"];
 
@@ -105,15 +109,19 @@ export type IAssistanceRoomClientSlice = InMemoryStateMap & {
 };
 
 export type IRoomEmitterSlice = {
-  incomingResponder: string | null;
-  currentListeners: IRoomListener[];
+  __incomingResponder: string | null;
+  getIncomingResponder: () => string | null;
+  __currentListeners: IRoomListener[];
+  getCurrentListeners: () => IRoomListener[];
   requestHelp: () => Promise<void>;
 };
 
 export type IRoomReceiverSlice = {
-  roomsToDiscover: IWSRoom[];
-  roomsListeningTo: IWSRoomListener[];
-  storedListeners: Omit<IListeningToDTO["Read"], "appId">[];
+  __roomsToDiscover: IWSRoom[];
+  getRoomsToDiscover: () => IWSRoom[];
+  __roomsListeningTo: IWSRoomListener[];
+  getRoomsListeningTo: () => IWSRoomListener[];
+  __storedListeners: Omit<IListeningToDTO["Read"], "appId">[];
   getStoredListeners: () => Omit<IListeningToDTO["Read"], "appId">[];
   __notifyEmitterThisDeviceIsListening: (room: IWSRoom) => Promise<void>;
   respondToHelp: (appId: UUID) => Promise<void>;

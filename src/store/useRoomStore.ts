@@ -36,25 +36,28 @@ export const createRoomStore =
     connMethod: ConnMethod.None,
     connAdapter: null,
     __status: RoomServiceStatus.Down,
-    currentDevice: null,
-    scheduledToCheck: new Map(),
+    __currentDevice: null,
+    __scheduledToCheck: new Map(),
     __dbRepos: null,
 
     //  Room receiver values
-    roomsListeningTo: [],
-    roomsToDiscover: [],
-    storedListeners: [],
+    __roomsListeningTo: [],
+    __roomsToDiscover: [],
+    __storedListeners: [],
 
     //  Room emitter values
-    currentListeners: [],
-    incomingResponder: null,
+    __currentListeners: [],
+    __incomingResponder: null,
 
     updateConnectionMethod: (connMethod, connAdapter) => {
       set({ connMethod, connAdapter });
     },
     getAppId: get().getRepos().LocalData.getCurrentAppId,
     getCurrentName: get().getRepos().LocalData.getCurrentName,
-    getCurrentDevice: () => get().currentDevice,
+    getCurrentDevice: () => get().__currentDevice,
+    getRoomsToDiscover: () => get().__roomsToDiscover,
+    getRoomsListeningTo: () => get().__roomsListeningTo,
+    getStoredListeners: () => get().__storedListeners,
     getAdapter: () => {
       const adapter = get().connAdapter;
       if (!adapter) throw new Error("No Adapter set in room store");
@@ -67,8 +70,8 @@ export const createRoomStore =
       if (!storedListeners.length) return;
       for (const listener of storedListeners) {
         set((state) => ({
-          storedListeners: [
-            ...state.storedListeners,
+          __storedListeners: [
+            ...state.__storedListeners,
             { ...listener, lastSeen: new Date(listener.lastSeen) },
           ],
         }));
@@ -80,20 +83,18 @@ export const createRoomStore =
       throw new Error("dbRepos not set");
     },
 
-    getStoredListeners: () => get().storedListeners,
-
     onRemoteRespondToAdvertise: (payload, rinfo) => {
       //	If it hasn't been discovered nor is listening to it, add it to the discover list
-      const isListening = get().roomsListeningTo.find(
-        (x) => x.appId === payload.appId
-      );
+      const isListening = get()
+        .getRoomsListeningTo()
+        .find((x) => x.appId === payload.appId);
       if (isListening) return;
-      const hasDiscovered = get().roomsToDiscover.findIndex(
-        (x) => x.appId === payload.appId
-      );
+      const hasDiscovered = get()
+        .getRoomsToDiscover()
+        .findIndex((x) => x.appId === payload.appId);
       if (hasDiscovered === -1) {
         set((state) => {
-          state.roomsToDiscover.splice(hasDiscovered, 1, {
+          state.__roomsToDiscover.splice(hasDiscovered, 1, {
             ...payload,
             port: rinfo.port,
             address: rinfo.address,
@@ -105,20 +106,20 @@ export const createRoomStore =
     onRemoteBroadcastStop: (payload) => {
       set((state) => {
         // All devices check if it is on the discovery list and deletes it
-        let emitter = state.roomsToDiscover.findIndex(
+        let emitter = state.__roomsToDiscover.findIndex(
           (x) => x.appId === payload.appId
         );
         if (emitter !== -1) {
-          state.roomsToDiscover.splice(emitter, 1);
+          state.__roomsToDiscover.splice(emitter, 1);
           return state;
         }
         //	and set the emitter to disconnected
-        emitter = state.roomsListeningTo.findIndex(
+        emitter = state.__roomsListeningTo.findIndex(
           (x) => x.appId === payload.appId
         );
         if (emitter !== -1) {
-          state.roomsListeningTo.splice(emitter, 1, {
-            ...state.roomsListeningTo[emitter],
+          state.__roomsListeningTo.splice(emitter, 1, {
+            ...state.__roomsListeningTo[emitter],
             disconnected: true,
             needsAssist: false,
           });
@@ -128,13 +129,15 @@ export const createRoomStore =
       });
     },
     onStartListening: (appId) => {
-      const discoverRoom = get().roomsToDiscover.find((x) => x.appId === appId);
+      const discoverRoom = get()
+        .getRoomsToDiscover()
+        .find((x) => x.appId === appId);
       if (discoverRoom) {
         set((state) => {
-          state.roomsToDiscover = state.roomsToDiscover.filter(
+          state.__roomsToDiscover = state.__roomsToDiscover.filter(
             (x) => x.appId !== discoverRoom.appId
           );
-          state.roomsListeningTo.push({
+          state.__roomsListeningTo.push({
             ...discoverRoom,
             disconnected: false,
             needsAssist: false,
@@ -148,7 +151,7 @@ export const createRoomStore =
       set((state) => ({
         ...state,
         currentListeners: [
-          ...state.currentListeners,
+          ...state.__currentListeners,
           { ...payload, port: rinfo.port, address: rinfo.address },
         ],
       }));
@@ -157,19 +160,19 @@ export const createRoomStore =
       // To check if this is valid response
       set((state) => ({
         ...state,
-        roomsListeningTo: state.roomsListeningTo.filter(
+        roomsListeningTo: state.__roomsListeningTo.filter(
           (x) => x.appId !== payload.appId
         ),
       }));
     },
     onEmitterRequestHelp: (payload) => {
-      const emitter = get().roomsListeningTo.findIndex(
+      const emitter = get().__roomsListeningTo.findIndex(
         (x) => x.appId === payload.appId
       );
       if (emitter !== -1) {
         set((state) => {
-          state.roomsListeningTo.splice(emitter, 1, {
-            ...state.roomsListeningTo[emitter],
+          state.__roomsListeningTo.splice(emitter, 1, {
+            ...state.__roomsListeningTo[emitter],
             needsAssist: true,
           });
           return state;
@@ -177,13 +180,13 @@ export const createRoomStore =
       }
     },
     onEmitterStopsHelpRequest: (payload) => {
-      const emitter = get().roomsListeningTo.find(
-        (x) => x.appId === payload.appId
-      );
+      const emitter = get()
+        .getRoomsListeningTo()
+        .find((x) => x.appId === payload.appId);
       if (emitter) {
         set((state) => ({
-          roomsListeningTo: [
-            ...state.roomsListeningTo,
+          __roomsListeningTo: [
+            ...state.__roomsListeningTo,
             {
               ...emitter,
               needsAssist: false,
@@ -193,7 +196,7 @@ export const createRoomStore =
       }
     },
     updateIncomingResponder: (payload) => {
-      set(() => ({ incomingResponder: payload.responderName }));
+      set(() => ({ __incomingResponder: payload.responderName }));
     },
     onInvalidMessage: (payload) => {
       //	Handle invalid events
@@ -205,19 +208,19 @@ export const createRoomStore =
       set((state) => {
         // 	On this device.
         //	If it is someone this device listens to, connect it again
-        const listeningTo = get().roomsListeningTo.findIndex(
-          (x) => x.appId === payload.appId
-        );
+        const listeningTo = get()
+          .getRoomsListeningTo()
+          .findIndex((x) => x.appId === payload.appId);
         if (listeningTo !== -1) {
-          state.roomsListeningTo[listeningTo] = {
-            ...state.roomsListeningTo[listeningTo],
+          state.__roomsListeningTo[listeningTo] = {
+            ...state.__roomsListeningTo[listeningTo],
             disconnected: false,
           };
 
           //	Update that device last status so it wont be removed on next check
-          const device = get().scheduledToCheck.get(payload.appId);
+          const device = get().__scheduledToCheck.get(payload.appId);
           if (device) {
-            state.scheduledToCheck.set(payload.appId, {
+            state.__scheduledToCheck.set(payload.appId, {
               ...device,
               lastPing: Date.now(),
             });
@@ -226,7 +229,7 @@ export const createRoomStore =
         }
 
         //	Update last ping status
-        state.scheduledToCheck.set(payload.appId, {
+        state.__scheduledToCheck.set(payload.appId, {
           lastPing: Date.now(),
           port: rinfo.port,
           address: rinfo.address,
@@ -238,16 +241,20 @@ export const createRoomStore =
     onDeviceCleanUp: (appId) => {
       set((state) => {
         // On discovered devices, delete it
-        let device = state.roomsToDiscover.findIndex((x) => x.appId === appId);
+        let device = state
+          .getRoomsToDiscover()
+          .findIndex((x) => x.appId === appId);
         if (device !== -1) {
-          state.roomsToDiscover.splice(device, 1);
+          state.__roomsToDiscover.splice(device, 1);
         }
 
         // On listening devices, disconnect it
-        device = state.roomsListeningTo.findIndex((x) => x.appId === appId);
+        device = state
+          .getRoomsListeningTo()
+          .findIndex((x) => x.appId === appId);
         if (device !== -1) {
-          state.roomsListeningTo.splice(device, 1, {
-            ...state.roomsListeningTo[device],
+          state.getRoomsListeningTo().splice(device, 1, {
+            ...state.getRoomsListeningTo()[device],
             disconnected: true,
             needsAssist: false,
           });
@@ -255,8 +262,10 @@ export const createRoomStore =
         }
 
         // On current listeners delete it
-        device = state.currentListeners.findIndex((x) => x.appId === appId);
-        if (device !== -1) state.currentListeners.splice(device, 1);
+        device = state
+          .getCurrentListeners()
+          .findIndex((x) => x.appId === appId);
+        if (device !== -1) state.__currentListeners.splice(device, 1);
 
         return state;
       });
@@ -264,19 +273,23 @@ export const createRoomStore =
 
     getMergedRooms: () => {
       return [
-        ...get().currentListeners.map<IRoomData>(
-          ({ responderName, ...room }) => room
-        ),
-        ...get().roomsListeningTo.map<IRoomData>((x) => ({
-          address: x.address,
-          appId: x.appId,
-          port: x.port,
-        })),
-        ...get().roomsToDiscover.map<IRoomData>((x) => ({
-          address: x.address,
-          appId: x.appId,
-          port: x.port,
-        })),
+        ...get()
+          .getCurrentListeners()
+          .map<IRoomData>(({ responderName, ...room }) => room),
+        ...get()
+          .getRoomsListeningTo()
+          .map<IRoomData>((x) => ({
+            address: x.address,
+            appId: x.appId,
+            port: x.port,
+          })),
+        ...get()
+          .getRoomsToDiscover()
+          .map<IRoomData>((x) => ({
+            address: x.address,
+            appId: x.appId,
+            port: x.port,
+          })),
       ];
     },
 
@@ -299,7 +312,9 @@ export const createRoomStore =
         });
     },
     respondToHelp: async (appId) => {
-      const emitter = get().roomsListeningTo.find((x) => x.appId === appId);
+      const emitter = get()
+        .getRoomsListeningTo()
+        .find((x) => x.appId === appId);
       if (!emitter || emitter.disconnected) return;
       get()
         .getAdapter()
@@ -309,7 +324,9 @@ export const createRoomStore =
         });
     },
     deleteListeningTo: async (appId) => {
-      const listeningTo = get().roomsListeningTo.find((x) => x.appId === appId);
+      const listeningTo = get()
+        .getRoomsListeningTo()
+        .find((x) => x.appId === appId);
       if (listeningTo) {
         get().onRemoteNotListening({ appId });
         get()
@@ -322,5 +339,7 @@ export const createRoomStore =
     },
 
     //  Room emitter methods
+    getIncomingResponder: () => get().__incomingResponder,
+    getCurrentListeners: () => get().__currentListeners,
     requestHelp: get().getAdapter().requestHelp,
   });
