@@ -11,20 +11,10 @@ import {
   RoomServiceStatus,
 } from "../schemas/RoomEvent.schema";
 import { IRoomData } from "../types/room.context";
-import { UdpSocketClient } from "../udp-client/UDPClient";
 
 export type IRoomState = IAssistanceRoomClientSlice &
   IRoomEmitterSlice &
   IRoomReceiverSlice;
-
-/**
- * 	This reducer takes care of most of the app's state and side effects
- * 	It has been done this way to be agnostic to connection methods logic
- * 	and to be used alongside them.
- *
- * 	@edit This was a reducer from react and got stripped to be used
- * 	outside react itself.
- */
 
 /**
  *  @summary Must be used with subscribeWithSelector per enviroment \
@@ -52,8 +42,9 @@ export const createRoomStore =
     updateConnectionMethod: (connMethod, connAdapter) => {
       set({ connMethod, connAdapter });
     },
-    getAppId: get().getRepos().LocalData.getCurrentAppId,
-    getCurrentName: get().getRepos().LocalData.getCurrentName,
+    getAppId: async () => await get().getRepos().LocalData.getCurrentAppId(),
+    getCurrentName: async () =>
+      await get().getRepos().LocalData.getCurrentName(),
     getCurrentDevice: () => get().__currentDevice,
     getRoomsToDiscover: () => get().__roomsToDiscover,
     getRoomsListeningTo: () => get().__roomsListeningTo,
