@@ -107,7 +107,7 @@ export type IAssistanceRoomClientSlice = InMemoryStateMap & {
 export type IRoomEmitterSlice = {
   incomingResponder: string | null;
   currentListeners: IRoomListener[];
-  requestHelp: () => void;
+  requestHelp: () => Promise<void>;
 };
 
 export type IRoomReceiverSlice = {
