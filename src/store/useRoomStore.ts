@@ -332,5 +332,5 @@ export const createRoomStore =
     //  Room emitter methods
     getIncomingResponder: () => get().__incomingResponder,
     getCurrentListeners: () => get().__currentListeners,
-    requestHelp: get().getAdapter().requestHelp,
+    requestHelp: async () => await get().getAdapter().requestHelp(),
   });
